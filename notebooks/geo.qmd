@@ -1,0 +1,31 @@
+---
+title: "API development"
+format:
+  html:
+    code-fold: true
+jupyter: python3
+---
+
+```{python}
+import os
+os.chdir("..")
+```
+
+```{python}
+import geopandas as gpd
+import ibis
+from src.data.data_pull import DataPull
+
+ibis.options.interactive = True
+```
+
+```{python}
+DataPull()
+```
+
+```{python}
+gdf = gpd.read_file("data/external/cousub.zip")
+gdf[["GEOID","NAME","geometry"]].rename(columns={"GEOID":"geoid", "NAME":"name"})
+```
+
+

@@ -11,11 +11,14 @@ authors = [
 license = { file = "LICENSE" }
 dependencies = [
   "alembic>=1.14.0",
+  "geoalchemy2>=0.17.0",
+  "geopandas>=1.0.1",
   "ibis-framework[sqlite]>=9.5.0",
   "polars>=1.19.0",
   "psycopg2-binary>=2.9.10",
   "requests>=2.32.3",
   "sqlmodel>=0.0.22",
+  "tqdm>=4.67.1",
 ]
 
 [dependency-groups]
