@@ -24,8 +24,10 @@ DataPull()
 ```
 
 ```{python}
+conn = ibis.sqlite.connect("db.sqlite")
 gdf = gpd.read_file("data/external/cousub.zip")
-gdf[["GEOID","NAME","geometry"]].rename(columns={"GEOID":"geoid", "NAME":"name"})
+gdf = gdf[["GEOID","NAME","geometry"]].rename(columns={"GEOID":"geoid", "NAME":"name"})
+conn.insert("geotable",gdf)
 ```
 
 
