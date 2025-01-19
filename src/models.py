@@ -1,10 +1,12 @@
-from ibis import Any
-from sqlmodel import Column, Field, SQLModel
+from sqlmodel import SQLModel, Field
 from geoalchemy2 import Geometry
-
+from sqlalchemy import Column
 
 class GeoTable(SQLModel, table=True):
     id: int = Field(primary_key=True)
     geoid: str
     name: str
-    geometry: Any = Field(sa_column=Column(Geometry("POLYGON")))
+    geometry: Geometry = Field(sa_column=Column(Geometry("MULTIPOLYGON", srid=4269)))
+
+    class Config:
+        arbitrary_types_allowed = True
