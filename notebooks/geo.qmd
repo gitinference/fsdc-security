@@ -41,7 +41,7 @@ gdf.to_postgis("geotable",  engine, if_exists="append")
 ```{python}
 import ibis
 
-ibis.options.interactive = True
+ibis.options.interactive = True  
 
 
 conn = ibis.postgres.connect(
@@ -51,5 +51,17 @@ conn = ibis.postgres.connect(
     port=5432,
     database="postgres",
 )
-conn.table("geotable")
+df = conn.table("geotable")
+df.select(["id","name","geometry"])
+```
+
+```{python}
+import ibis
+ibis.options.interactive =  True
+t = ibis.examples.zones.fetch()
+```
+
+```{python}
+
+ibis.duckdb.connect()
 ```
