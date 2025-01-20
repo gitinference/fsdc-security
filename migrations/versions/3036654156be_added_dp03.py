@@ -30,7 +30,7 @@ def upgrade() -> None:
         sa.Column("total_house", sa.Integer(), nullable=False),
         sa.Column("inc_less_10k", sa.Integer(), nullable=False),
         sa.Column("inc_10k_15k", sa.Integer(), nullable=False),
-        sa.Column("inc_15_25k", sa.Integer(), nullable=False),
+        sa.Column("inc_15k_25k", sa.Integer(), nullable=False),
         sa.Column("inc_25k_35k", sa.Integer(), nullable=False),
         sa.Column("inc_35k_50k", sa.Integer(), nullable=False),
         sa.Column("inc_50k_75k", sa.Integer(), nullable=False),

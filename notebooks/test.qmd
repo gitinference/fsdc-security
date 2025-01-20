@@ -1,0 +1,31 @@
+---
+title: "Databace development"
+format:
+  html:
+    code-fold: true
+jupyter: python3
+---
+
+```{python}
+import os
+os.chdir("..")
+```
+
+```{python}
+import geopandas as gpd
+import ibis
+ibis.options.interactive = True
+```
+```{python}
+conn = ibis.duckdb.connect("data.ddb")
+# gdf = gpd.read_file("data/external/cousub.zip")
+# gdf = gdf[["GEOID", "NAME", "geometry"]].rename(
+#     columns={"GEOID": "geoid", "NAME": "name","geometry":"geom"}
+# )
+# # gdf.to_parquet("data.parquet")
+# # conn.read_parquet(table_name="geotable",source_list="data.parquet")
+# # t = ibis.read_parquet("data.parquet")
+# # conn.insert("geotable",t)
+# gdf.write_pandas()
+conn.table("geotable")
+```

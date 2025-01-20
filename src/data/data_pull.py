@@ -137,7 +137,7 @@ class DataPull:
                             "dp03_0051e": "total_house",
                             "dp03_0052e": "inc_less_10k",
                             "dp03_0053e": "inc_10k_15k",
-                            "dp03_0054e": "inc_15_25k",
+                            "dp03_0054e": "inc_15k_25k",
                             "dp03_0055e": "inc_25k_35k",
                             "dp03_0056e": "inc_35k_50k",
                             "dp03_0057e": "inc_50k_75k",

@@ -25,6 +25,7 @@ ibis.options.interactive = True
 d = DataPull(database_url="postgresql://postgres:password@localhost:5432/postgres")
 df = d.pull_dp03()
 # gdf = d.pull_shape()
+df
 ```
 
 ```{python}
