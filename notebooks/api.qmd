@@ -1,0 +1,7 @@
+---
+title: "API development"
+format:
+  html:
+    code-fold: true
+jupyter: python3
+---

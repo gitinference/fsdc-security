@@ -10,3 +10,10 @@ class GeoTable(SQLModel, table=True):
 
     class Config:
         arbitrary_types_allowed = True
+
+class PumsTable(SQLModel, table=True):
+    id: int = Field(primary_key=True)
+    year: int
+    adjinc: float
+    hincip: int
+    pwgtp: int

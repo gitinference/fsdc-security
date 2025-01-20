@@ -1,5 +1,5 @@
 ---
-title: "API development"
+title: "Databace development"
 format:
   html:
     code-fold: true
@@ -16,52 +16,18 @@ import geopandas as gpd
 import ibis
 from src.data.data_pull import DataPull
 from sqlalchemy import create_engine
+import polars as pl
 
 ibis.options.interactive = True
 ```
 
 ```{python}
-d = DataPull()
+d = DataPull(database_url="postgresql://postgres:password@localhost:5432/postgres")
+df = d.pull_pums()
 ```
 
 ```{python}
-conn = ibis.postgres.connect(
-    user="postgres",
-    password="password",
-    host="localhost",
-    port=5432,
-    database="postgres",
-)
-engine = create_engine("postgresql+psycopg2://postgres:password@localhost:5432/postgres")
-gdf = gpd.read_file("data/external/cousub.zip")
-gdf = gdf[["GEOID","NAME","geometry"]].rename(columns={"GEOID":"geoid", "NAME":"name"})
-gdf.to_postgis("geotable",  engine, if_exists="append")
-```
-
-```{python}
-import ibis
-
-ibis.options.interactive = True  
-
-
-conn = ibis.postgres.connect(
-    user="postgres",
-    password="password",
-    host="localhost",
-    port=5432,
-    database="postgres",
-)
-df = conn.table("geotable")
-df.select(["id","name","geometry"])
-```
-
-```{python}
-import ibis
-ibis.options.interactive =  True
-t = ibis.examples.zones.fetch()
-```
-
-```{python}
-
-ibis.duckdb.connect()
+tmp = df.filter(df.year==2023)
+tmp = tmp.filter(df.hincp<10000).count()
+tmp 
 ```
