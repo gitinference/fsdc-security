@@ -5,3 +5,45 @@ format:
     code-fold: true
 jupyter: python3
 ---
+
+
+```{python}
+import os
+os.chdir("..")
+```
+
+
+```{python}
+import requests
+import polars as pl
+```
+
+```{python}
+param = "DP03_0051E,DP03_0052E,DP03_0053E,DP03_0054E,DP03_0055E,DP03_0056E,DP03_0057E,DP03_0058E,DP03_0059E,DP03_0060E,DP03_0061E"
+base = "https://api.census.gov/data/"
+year = 2021
+flow = "/acs/acs5/profile"
+url = f'{base}{year}{flow}?get={param}&for=county%20subdivision:*&in=state:72&in=county:*'
+df = pl.DataFrame(requests.get(url).json())
+
+# get names from DataFrame
+names = df.select(pl.col("column_0")).transpose()
+names = names.to_dicts().pop()
+names = dict((k, v.lower()) for k,v in names.items())
+
+# Pivot table
+df = df.drop("column_0").transpose()
+df = df.rename(names).with_columns(year=pl.lit(year))
+df = df.rename({"dp03_0051e":"total_house", "dp03_0052e":"inc_less_10k","dp03_0053e":"inc_10k_15k", "dp03_0054e":"inc_15_25k", "dp03_0055e":"inc_25k_35k", "dp03_0056e":"inc_35k_50k", "dp03_0057e":"inc_50k_75k", "dp03_0058e":"inc_75k_100k", "dp03_0059e":"inc_100k_150k", "dp03_0060e":"inc_150k_200k", "dp03_0061e":"inc_more_200k",})
+df = df.with_columns(
+  geoid=pl.col("state") + pl.col("county") + pl.col("county subdivision")
+).drop(["state", "county", "county subdivision"])
+df.with_columns(pl.all().exclude("geoid").cast(pl.Int64))
+```
+
+```{python}
+# df = df.rename({"dp03_0051e":"total_house", "dp03_0052e":"inc_less_10k","dp03_0053e":"inc_10k_15k", "dp03_0054e":"inc_15_25k", "dp03_0055e":"inc_25k_35k", "dp03_0056e":"inc_35k_50k", "dp03_0057e":"inc_50k_75k", "dp03_0058e":"inc_75k_100k", "dp03_0059e":"inc_100k_150k", "dp03_0060e":"inc_150k_200k", "dp03_0061e":"inc_more_200k",})
+df.with_columns(
+  geoid=pl.col("state") + pl.col("county") + pl.col("county subdivision")
+).drop(["state", "county", "county subdivision"])
+```
