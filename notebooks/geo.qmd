@@ -12,24 +12,38 @@ os.chdir("..")
 ```
 
 ```{python}
+import duckdb
+from shapely import wkt
 import geopandas as gpd
-import ibis
-from src.data.data_pull import DataPull
-from sqlalchemy import create_engine
-import polars as pl
 
-ibis.options.interactive = True
+conn = duckdb.connect()
 ```
 
 ```{python}
-d = DataPull(database_url="postgresql://postgres:password@localhost:5432/postgres")
-df = d.pull_dp03()
-# gdf = d.pull_shape()
-df
+gdf = gpd.read_file(f"data/external/cousub.zip")
+gdf = gdf[["GEOID", "NAME", "geometry"]]
+gdf = gdf.rename(
+                columns={"GEOID": "geoid", "NAME": "name"}
+            )
+gdf
 ```
 
 ```{python}
-tmp = df.filter(df.year==2023)
-tmp = tmp.filter(df.hincp<10000).count()
-tmp 
+# Convert GeoDataFrame to Pandas DataFrame (since DuckDB can work with Pandas)
+df = gdf.drop(columns='geometry')  # Drop geometry for now, we'll handle it separately
+geometry = gdf['geometry'].apply(lambda geom: geom.wkt)  # Convert geometry to WKT
+
+# Create a new DataFrame with the geometry as a separate column
+df['geometry'] = geometry
+
+# Insert data into DuckDB
+conn.execute("CREATE TABLE spatial_data AS SELECT * FROM df")
+conn.sql("SELECT * FROM spatial_data;").df()
+```
+
+```{python}
+df = conn.sql("SELECT * FROM spatial_data;").df()
+gdf = gpd.GeoDataFrame(df)
+gdf['geometry'] = gdf['geometry'].apply(wkt.loads)
+gdf.set_geometry("geometry")
 ```

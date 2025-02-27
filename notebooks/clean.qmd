@@ -13,48 +13,49 @@ os.chdir("..")
 
 ```{python}
 import geopandas as gpd
-import ibis
-from src.data.data_pull import DataPull
-from sqlalchemy import create_engine
+from shapely import wkt
 import polars as pl
-
-ibis.options.interactive = True
+from src.data.data_pull import DataPull
+d = DataPull()
 ```
 
 ```{python}
-d = DataPull(database_url="postgresql://postgres:password@localhost:5432/postgres")
 main = d.pull_dp03()
-main_gdf = d.pull_shape()
+main_gdf = d.pull_geo()
 main
 ```
 
 ```{python}
 df = main
-df = df.mutate(
-    inc_less_15k=df.inc_less_10k + df.inc_10k_15k,
-    inc_more_35k=df.inc_35k_50k + df.inc_50k_75k + df.inc_75k_100k + df.inc_100k_150k + df.inc_150k_200k + df.inc_more_200k
+df = df.with_columns(
+    inc_less_15k=pl.col("inc_less_10k") + pl.col("inc_10k_15k"),
+    inc_more_35k=pl.col("inc_35k_50k") + pl.col("inc_50k_75k") + pl.col("inc_75k_100k") + pl.col("inc_100k_150k") + pl.col("inc_150k_200k") + pl.col("inc_more_200k")
 )
 df = df.select(["id","year","geoid","total_house","inc_less_15k","inc_15k_25k","inc_25k_35k","inc_more_35k"])
-df = df.mutate(
-  p_inc_less_15k=df.inc_less_15k / df.total_house,
-  p_inc_15_25k=df.inc_15k_25k / df.total_house,
-  p_inc_25k_35k=df.inc_25k_35k / df.total_house,
-  p_inc_more_35k=df.inc_more_35k / df.total_house
+df = df.with_columns(
+  p_inc_less_15k=pl.col("inc_less_15k") / pl.col("total_house"),
+  p_inc_15_25k=pl.col("inc_15k_25k") / pl.col("total_house"),
+  p_inc_25k_35k=pl.col("inc_25k_35k") / pl.col("total_house"),
+  p_inc_more_35k=pl.col("inc_more_35k") / pl.col("total_house")
 )
-df = df.mutate(
-    insec_less_15k=df.inc_less_15k * 57/100,
-    insec_15k_25k=df.inc_15k_25k * 29/100,
-    insec_25k_35k=df.inc_25k_35k * 66/1000,
-    insec_more_35k=df.inc_more_35k * 75/1000
+df = df.with_columns(
+    insec_less_15k=pl.col("inc_less_15k") * 57/100,
+    insec_15k_25k=pl.col("inc_15k_25k") * 29/100,
+    insec_25k_35k=pl.col("inc_25k_35k") * 66/1000,
+    insec_more_35k=pl.col("inc_more_35k") * 75/1000
 )
-df = df.mutate(
-  total_insec=df.insec_less_15k + df.insec_15k_25k + df.insec_25k_35k + df.insec_more_35k
+df = df.with_columns(
+  total_insec=pl.col("insec_less_15k") + pl.col("insec_15k_25k") + pl.col("insec_25k_35k") + pl.col("insec_more_35k")
 )
 
-df = df.filter(df.year==2012)
+df = df.filter(pl.col("year")==2012)
+df
 ```
 
 ```{python}
-# gpd.GeoDataFrame(main_gdf.to_pandas(), geometry="geometry").plot()
-d.conn.table("geotable", schema="public").execute()
+df = d.pull_geo().df()
+gdf = gpd.GeoDataFrame(df)
+gdf['geometry'] = gdf['geometry'].apply(wkt.loads)
+gdf = gdf.set_geometry("geometry")
+gdf
 ```

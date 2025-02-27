@@ -26,6 +26,23 @@ def init_dp03_table(db_path: str) -> None:
             inc_100k_150k INTEGER,
             inc_150k_200k INTEGER,
             inc_more_200k INTEGER
-            )
+            );
+        """
+    )
+
+def init_geo_table(db_path: str) -> None:
+    conn = get_conn(db_path=db_path)
+    conn.install_extension("spatial")
+    conn.load_extension("spatial")
+    conn.sql("DROP SEQUENCE IF EXISTS geo_sequence;")
+    conn.sql("CREATE SEQUENCE geo_sequence START 1;")
+    conn.sql(
+        """
+        CREATE TABLE IF NOT EXISTS "GeoTable" (
+            id INTEGER PRIMARY KEY DEFAULT nextval('geo_sequence'),
+            geoid TEXT,
+            name TEXT,
+            geometry GEOMETRY,
+            );
         """
     )

@@ -14,14 +14,16 @@ os.chdir("..")
 
 ```{python}
 from src.models import *
+import geopandas as gpd
+from shapely import wkt
 from src.data.data_pull import DataPull
 conn = get_conn("test.ddb")
 ```
 
 ```{python}
 dp = DataPull()
-dp.pull_dp03()
-
+df = dp.pull_geo().df()
+gpd.GeoDataFrame(data=df, geometry=df["geom"])
 ```
 
 ```{python}

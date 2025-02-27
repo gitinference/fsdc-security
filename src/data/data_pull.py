@@ -2,7 +2,7 @@ from json import JSONDecodeError
 from datetime import datetime
 import geopandas as gpd
 from tqdm import tqdm
-from ..models import get_conn, init_dp03_table
+from ..models import get_conn, init_dp03_table, init_geo_table
 import polars as pl
 import requests
 import logging
@@ -144,24 +144,24 @@ class DataPull:
             else:
                 logging.info(f"data for {_year} is in the database")
                 continue
-        return self.conn.sql("SELECT * FROM 'DP03Table'").pl()
+        return self.conn.sql("SELECT * FROM 'DP03Table';").pl()
 
-    def pull_shape(self) -> ibis.expr.types.relations.Table:
+    def pull_geo(self) -> ibis.expr.types.relations.Table:
         if not os.path.exists(f"{self.saving_dir}external/cousub.zip"):
             self.pull_file(
                 url="https://www2.census.gov/geo/tiger/TIGER2024/COUSUB/tl_2024_72_cousub.zip",
                 filename=f"{self.saving_dir}external/cousub.zip",
             )
-        gdf = self.conn.table("geotable")
-        if gdf.to_pandas().empty:
+        if "GeoTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
             logging.info(
                 f"The GeoTable is empty inserting {self.saving_dir}external/cousub.zip"
             )
-            tmp = gpd.read_file(f"{self.saving_dir}external/cousub.zip")
-            tmp = tmp[["GEOID", "NAME", "geometry"]]
-            tmp = tmp.rename(
-                columns={"GEOID": "geoid", "NAME": "name"}
-            )
-            tmp.to_postgis("geotable", self.engine, if_exists="append")
+            gdf = gpd.read_file(f"{self.saving_dir}external/cousub.zip")
+            gdf = gdf[["GEOID", "NAME", "geometry"]]
+            gdf = gdf.rename(columns={"GEOID": "geoid", "NAME": "name"})
+            df = gdf.drop(columns='geometry')
+            geometry = gdf['geometry'].apply(lambda geom: geom.wkt)
+            df['geometry'] = geometry
+            self.conn.execute("CREATE TABLE GeoTable AS SELECT * FROM df")
             logging.info("Succefully inserting data to database")
-        return self.conn.table("geotable")
+        return self.conn.sql("SELECT * FROM GeoTable;")
