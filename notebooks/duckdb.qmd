@@ -1,0 +1,42 @@
+---
+title: "Database development"
+format:
+  html:
+    code-fold: true
+jupyter: python3
+---
+
+
+```{python}
+import os
+os.chdir("..")
+```
+
+```{python}
+from src.models import *
+from src.data.data_pull import DataPull
+conn = get_conn("test.ddb")
+```
+
+```{python}
+dp = DataPull()
+dp.pull_dp03()
+
+```
+
+```{python}
+init_dp03_table("test.ddb")
+```
+
+```{python}
+conn.sql("SELECT * FROM 'DP03Table'").df()
+```
+
+```{python}
+year = 2020
+conn.sql(f"SELECT * FROM 'DP03Table' WHERE year={year}")
+```
+
+```{python}
+conn.sql("SHOW TABLES;")
+```
