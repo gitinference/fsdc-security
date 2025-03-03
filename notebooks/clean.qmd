@@ -57,5 +57,6 @@ df = d.pull_geo().df()
 gdf = gpd.GeoDataFrame(df)
 gdf['geometry'] = gdf['geometry'].apply(wkt.loads)
 gdf = gdf.set_geometry("geometry")
-gdf
+gdf["geoid"] = gdf["geoid"].astype(str)
+gdf.join(df, on="geoid", how="inner", validate="1:1")
 ```
