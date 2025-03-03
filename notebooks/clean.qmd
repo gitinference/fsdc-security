@@ -48,8 +48,12 @@ df = df.with_columns(
   total_insec=pl.col("insec_less_15k") + pl.col("insec_15k_25k") + pl.col("insec_25k_35k") + pl.col("insec_more_35k")
 )
 
-df = df.filter(pl.col("year")==2012)
-df
+df = df.with_columns(
+  insecurity_hous=pl.col("total_insec")/pl.col("total_house")
+)
+
+df2 = df.filter(pl.col("year")==2023)
+df2
 ```
 
 ```{python}
@@ -58,5 +62,17 @@ gdf = gpd.GeoDataFrame(df)
 gdf['geometry'] = gdf['geometry'].apply(wkt.loads)
 gdf = gdf.set_geometry("geometry")
 gdf["geoid"] = gdf["geoid"].astype(str)
-gdf.join(df, on="geoid", how="inner", validate="1:1")
+master = gdf.join(df2.to_pandas().set_index("geoid"), on="geoid", how="inner", validate="1:1")
 ```
+
+```{python}
+
+master.plot("total_insec")
+```
+
+
+```{python}
+gdf = gpd.read_file("data/external/ipums_puma_2020.zip")
+```
+
+``{python}
