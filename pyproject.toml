@@ -19,6 +19,7 @@ dependencies = [
   "requests>=2.32.3",
   "sqlalchemy>=2.0.37",
   "tqdm>=4.67.1",
+  "vegafusion[embed]>=2.0.2",
 ]
 
 [dependency-groups]

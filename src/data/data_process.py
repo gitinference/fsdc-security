@@ -66,6 +66,6 @@ class DataClean(DataPull):
         gdf["geoid"] = gdf["geoid"].astype(str)
 
         security_df = gdf.join(
-            df.to_pandas().set_index("geoid"), on="geoid", how="inner", validate="m:1"
-        )
+            df.to_pandas().set_index("geoid"), on="geoid", how="inner", validate="1:m"
+        ).reset_index(drop=True)
         return gpd.GeoDataFrame(security_df, geometry="geometry")

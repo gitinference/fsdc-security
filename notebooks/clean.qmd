@@ -17,22 +17,26 @@ from shapely import wkt
 import polars as pl
 import altair as alt
 from src.data.data_viz import DataSecurity
+alt.data_transformers.enable("vegafusion")
 d = DataSecurity()
 ```
 
 ```{python}
-main = d.pull_dp03()
-main_gdf = d.pull_geo()
-main
+d.classify(year=2022, var="insecurity_hous",type='linear')
 ```
 
 ```{python}
 d.calc_security()
 ```
 
+```{python}
+d.gen_graph(2022)
+```
+
 
 ```{python}
-df = main
+# main_gdf = d.pull_geo()
+df = d.pull_dp03()
 df = df.with_columns(
     inc_less_15k=pl.col("inc_less_10k") + pl.col("inc_10k_15k"),
     inc_more_35k=pl.col("inc_35k_50k") + pl.col("inc_50k_75k") + pl.col("inc_75k_100k") + pl.col("inc_100k_150k") + pl.col("inc_150k_200k") + pl.col("inc_more_200k")
@@ -58,7 +62,7 @@ df = df.with_columns(
   insecurity_hous=pl.col("total_insec")/pl.col("total_house")
 )
 
-df2 = df.filter(pl.col("year")==2023)
+df2 = df.filter(pl.col("year")==2021)
 df2
 ```
 
@@ -73,16 +77,16 @@ master = gdf.join(df2.to_pandas().set_index("geoid"), on="geoid", how="inner", v
 
 ```{python}
 
-master.plot("insecurity_hous")
+master
 ```
 
 
 ```{python}
 alt.Chart(master).mark_geoshape().encode(
-    color=alt.Color("insecurity_hous:Q").scale(scheme='viridis')
+    color=alt.Color("total_insec:Q").scale(scheme='magma')
 ).transform_lookup(
     lookup='geoid',
-    from_=alt.LookupData(master, 'geoid', ['insecurity_hous'])
+    from_=alt.LookupData(master, 'geoid', ['total_insec'])
 ).project(
     type='mercator'
 ).properties(
@@ -90,5 +94,3 @@ alt.Chart(master).mark_geoshape().encode(
     height=300
 )
 ```
-
-``{python}
