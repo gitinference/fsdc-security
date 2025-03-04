@@ -2,7 +2,7 @@ from json import JSONDecodeError
 from datetime import datetime
 import geopandas as gpd
 from tqdm import tqdm
-from ..models import get_conn, init_dp03_table, init_geo_table
+from ..models import get_conn, init_dp03_table
 import polars as pl
 import requests
 import logging

@@ -15,8 +15,9 @@ os.chdir("..")
 import geopandas as gpd
 from shapely import wkt
 import polars as pl
-from src.data.data_pull import DataPull
-d = DataPull()
+import altair as alt
+from src.data.data_viz import DataSecurity
+d = DataSecurity()
 ```
 
 ```{python}
@@ -24,6 +25,11 @@ main = d.pull_dp03()
 main_gdf = d.pull_geo()
 main
 ```
+
+```{python}
+d.calc_security()
+```
+
 
 ```{python}
 df = main
@@ -67,12 +73,22 @@ master = gdf.join(df2.to_pandas().set_index("geoid"), on="geoid", how="inner", v
 
 ```{python}
 
-master.plot("total_insec")
+master.plot("insecurity_hous")
 ```
 
 
 ```{python}
-gdf = gpd.read_file("data/external/ipums_puma_2020.zip")
+alt.Chart(master).mark_geoshape().encode(
+    color=alt.Color("insecurity_hous:Q").scale(scheme='viridis')
+).transform_lookup(
+    lookup='geoid',
+    from_=alt.LookupData(master, 'geoid', ['insecurity_hous'])
+).project(
+    type='mercator'
+).properties(
+    width="container",
+    height=300
+)
 ```
 
 ``{python}
