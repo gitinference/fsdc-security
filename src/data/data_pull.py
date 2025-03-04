@@ -1,8 +1,8 @@
-from sqlmodel import create_engine
 from json import JSONDecodeError
 from datetime import datetime
 import geopandas as gpd
 from tqdm import tqdm
+from ..models import get_conn, init_dp03_table
 import polars as pl
 import requests
 import logging
@@ -13,46 +13,28 @@ import os
 class DataPull:
     def __init__(
         self,
-        database_url: str = "sqlite:///db.sqlite",
         saving_dir: str = "data/",
-        update: bool = False,
-        debug: bool = False,
-        dev: bool = False,
-    ) -> None:
-        self.debug = debug
+        database_file: str = "data.ddb",
+        log_file: str = "data_process.log",
+    ):
         self.saving_dir = saving_dir
-        logging.basicConfig(level=logging.INFO)
+        self.data_file = database_file
+        #self.conn = ibis.duckdb.connect(f"{self.data_file}")
+        self.conn = get_conn(self.data_file)
 
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s - %(levelname)s - %(message)s",
+            datefmt="%d-%b-%y %H:%M:%S",
+            filename=log_file,
+        )
         # Check if the saving directory exists
         if not os.path.exists(self.saving_dir + "raw"):
             os.makedirs(self.saving_dir + "raw")
-            logging.info(f"created the raw folder in {self.saving_dir}")
         if not os.path.exists(self.saving_dir + "processed"):
             os.makedirs(self.saving_dir + "processed")
-            logging.info(f"created the processed folder in {self.saving_dir}/processed")
         if not os.path.exists(self.saving_dir + "external"):
             os.makedirs(self.saving_dir + "external")
-            logging.info(f"created the external folder in {self.saving_dir}/external")
-
-        self.database_url = database_url
-        self.engine = create_engine(self.database_url)
-        self.saving_dir = saving_dir
-        self.debug = debug
-        self.dev = dev
-        self.update = update
-
-        if self.database_url.startswith("sqlite"):
-            self.conn = ibis.sqlite.connect(self.database_url.replace("sqlite:///", ""))
-        elif self.database_url.startswith("postgres"):
-            self.conn = ibis.postgres.connect(
-                user=self.database_url.split("://")[1].split(":")[0],
-                password=self.database_url.split("://")[1].split(":")[1].split("@")[0],
-                host=self.database_url.split("://")[1].split(":")[1].split("@")[1],
-                port=self.database_url.split("://")[1].split(":")[2].split("/")[0],
-                database=self.database_url.split("://")[1].split(":")[2].split("/")[1],
-            )
-        else:
-            raise Exception("Database url is not supported")
 
     def pull_file(self, url: str, filename: str, verify: bool = True) -> None:
         """
@@ -110,10 +92,11 @@ class DataPull:
         df = df.drop("column_0").transpose()
         return df.rename(names).with_columns(year=pl.lit(year))
 
-    def pull_dp03(self) -> ibis.expr.types.relations.Table:
-        df = self.conn.table("dp03table")
+    def pull_dp03(self) -> pl.DataFrame:
+        if "DP03Table" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
+            init_dp03_table(self.data_file)
         for _year in range(2012, datetime.now().year):
-            if df.filter(df.year == _year).to_pandas().empty:
+            if self.conn.sql(f"SELECT * FROM 'DP03Table' WHERE year={_year}").df().empty:
                 try:
                     logging.info(f"pulling {_year} data")
                     tmp = self.pull_query(
@@ -137,7 +120,7 @@ class DataPull:
                             "dp03_0051e": "total_house",
                             "dp03_0052e": "inc_less_10k",
                             "dp03_0053e": "inc_10k_15k",
-                            "dp03_0054e": "inc_15_25k",
+                            "dp03_0054e": "inc_15k_25k",
                             "dp03_0055e": "inc_25k_35k",
                             "dp03_0056e": "inc_35k_50k",
                             "dp03_0057e": "inc_50k_75k",
@@ -153,7 +136,7 @@ class DataPull:
                         + pl.col("county subdivision")
                     ).drop(["state", "county", "county subdivision"])
                     tmp = tmp.with_columns(pl.all().exclude("geoid").cast(pl.Int64))
-                    self.conn.insert("dp03table", tmp)
+                    self.conn.sql("INSERT INTO 'DP03Table' BY NAME SELECT * FROM tmp")
                     logging.info(f"succesfully inserting {_year}")
                 except JSONDecodeError:
                     logging.warning(f"The ACS for {_year} is not availabe")
@@ -161,23 +144,24 @@ class DataPull:
             else:
                 logging.info(f"data for {_year} is in the database")
                 continue
-        return self.conn.table("dp03table")
+        return self.conn.sql("SELECT * FROM 'DP03Table';").pl()
 
-    def pull_shape(self) -> ibis.expr.types.relations.Table:
+    def pull_geo(self) -> ibis.expr.types.relations.Table:
         if not os.path.exists(f"{self.saving_dir}external/cousub.zip"):
             self.pull_file(
                 url="https://www2.census.gov/geo/tiger/TIGER2024/COUSUB/tl_2024_72_cousub.zip",
                 filename=f"{self.saving_dir}external/cousub.zip",
             )
-        gdf = self.conn.table("geotable")
-        if gdf.to_pandas().empty:
+        if "GeoTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
             logging.info(
                 f"The GeoTable is empty inserting {self.saving_dir}external/cousub.zip"
             )
-            tmp = gpd.read_file(f"{self.saving_dir}external/cousub.zip")
-            tmp = tmp[["GEOID", "NAME", "geometry"]].rename(
-                columns={"GEOID": "geoid", "NAME": "name"}
-            )
-            tmp.to_postgis("geotable", self.engine, if_exists="append")
+            gdf = gpd.read_file(f"{self.saving_dir}external/cousub.zip")
+            gdf = gdf[["GEOID", "NAME", "geometry"]]
+            gdf = gdf.rename(columns={"GEOID": "geoid", "NAME": "name"})
+            df = gdf.drop(columns='geometry')
+            geometry = gdf['geometry'].apply(lambda geom: geom.wkt)
+            df['geometry'] = geometry
+            self.conn.execute("CREATE TABLE GeoTable AS SELECT * FROM df")
             logging.info("Succefully inserting data to database")
-        return self.conn.table("geotable")
+        return self.conn.sql("SELECT * FROM GeoTable;")

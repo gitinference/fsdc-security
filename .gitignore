@@ -166,3 +166,6 @@ data/external/*
 data/raw/*
 data/processed/*
 *.sqlite
+*.wal
+*.ddb
+*.parquet
