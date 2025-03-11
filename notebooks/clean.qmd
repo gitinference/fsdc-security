@@ -18,11 +18,11 @@ import polars as pl
 import altair as alt
 from src.data.data_viz import DataSecurity
 alt.data_transformers.enable("vegafusion")
-d = DataSecurity()
+ds = DataSecurity()
 ```
 
 ```{python}
-d.classify(year=2022, var="insecurity_hous",type='linear')
+ds.gen_graph(year=2022, var="insecurity_hous",type='linear', title="asdfsdf")
 ```
 
 ```{python}

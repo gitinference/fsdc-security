@@ -1,0 +1,86 @@
+---
+title: "Databace development"
+format:
+  html:
+    code-fold: true
+jupyter: python3
+---
+
+```{python}
+import os
+os.chdir("..")
+```
+
+```{python}
+import geopandas as gpd
+from shapely import wkt
+import polars as pl
+import altair as alt
+from src.data.data_viz import DataSecurity
+alt.data_transformers.enable("vegafusion")
+ds = DataSecurity()
+```
+
+```{python}
+d.classify(year=2022, var="insecurity_hous",type='linear')
+```
+
+
+```{python}
+
+```
+
+```{python}
+var = "insecurity_hous"
+df = ds.calc_security()
+df = df[df["year"] == 2022]
+df = df["insecurity_hous", z]
+chart1 = (alt.Chart(df, title="something")
+.mark_geoshape().transform_lookup(
+    lookup="geoid",
+    from_=alt.LookupData(data=df, key="geoid", fields=[var]),
+)
+.encode(
+    alt.Color(
+        f"{var}:Q",
+        scale=alt.Scale(type="linear", scheme="viridis"),
+        legend=alt.Legend(direction="horizontal", orient="bottom"),
+    )
+)
+.project(type="mercator")
+.properties(width="container", height=300))
+```
+
+```{python}
+quant = df["total_insec"]
+domain = [
+    quant.min(),
+    quant.quantile(1/7),
+    quant.quantile(2/7),
+    quant.quantile(3/7),
+    quant.quantile(4/7),
+    quant.quantile(5/7),
+    quant.quantile(6/7),
+    quant.max(),
+]
+scale = alt.Scale(domain=domain, scheme="viridis")
+chart2 = (alt.Chart(df, title="something")
+.mark_geoshape().transform_lookup(
+    lookup="geoid",
+    from_=alt.LookupData(data=df, key="geoid", fields=[var]),
+)
+.encode(
+    alt.Color(
+        f"{var}:Q",
+        scale=scale,
+        legend=alt.Legend(direction="horizontal", orient="bottom"),
+    )
+)
+.project(type="mercator")
+.properties(width="container", height=300))
+```
+
+```{python}
+ds.gen_graph_total(2020)
+# ds.calc_security()
+```
