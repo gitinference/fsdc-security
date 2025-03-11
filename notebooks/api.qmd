@@ -47,3 +47,21 @@ df.with_columns(
   geoid=pl.col("state") + pl.col("county") + pl.col("county subdivision")
 ).drop(["state", "county", "county subdivision"])
 ```
+
+```{python}
+param = "DP03_0051E,DP03_0052E,DP03_0053E,DP03_0054E,DP03_0055E,DP03_0056E,DP03_0057E,DP03_0058E,DP03_0059E,DP03_0060E,DP03_0061E,DP05_0001E"
+base = "https://api.census.gov/data/"
+year = 2020
+flow = "/acs/acs5/profile"
+url = f'{base}{year}{flow}?get={param}&for=county%20subdivision:*&in=state:72&in=county:*'
+df = pl.DataFrame(requests.get(url).json())
+# get names from DataFrame
+names = df.select(pl.col("column_0")).transpose()
+names = names.to_dicts().pop()
+names = dict((k, v.lower()) for k,v in names.items())
+
+# Pivot table
+df = df.drop("column_0").transpose()
+df = df.rename(names).with_columns(year=pl.lit(year))
+df
+```

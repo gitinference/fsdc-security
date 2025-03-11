@@ -19,7 +19,7 @@ class DataPull:
     ):
         self.saving_dir = saving_dir
         self.data_file = database_file
-        #self.conn = ibis.duckdb.connect(f"{self.data_file}")
+        # self.conn = ibis.duckdb.connect(f"{self.data_file}")
         self.conn = get_conn(self.data_file)
 
         logging.basicConfig(
@@ -96,7 +96,11 @@ class DataPull:
         if "DP03Table" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
             init_dp03_table(self.data_file)
         for _year in range(2012, datetime.now().year):
-            if self.conn.sql(f"SELECT * FROM 'DP03Table' WHERE year={_year}").df().empty:
+            if (
+                self.conn.sql(f"SELECT * FROM 'DP03Table' WHERE year={_year}")
+                .df()
+                .empty
+            ):
                 try:
                     logging.info(f"pulling {_year} data")
                     tmp = self.pull_query(
@@ -157,11 +161,11 @@ class DataPull:
                 f"The GeoTable is empty inserting {self.saving_dir}external/cousub.zip"
             )
             gdf = gpd.read_file(f"{self.saving_dir}external/cousub.zip")
-            gdf = gdf[["GEOID", "NAME", "geometry"]]
             gdf = gdf.rename(columns={"GEOID": "geoid", "NAME": "name"})
-            df = gdf.drop(columns='geometry')
-            geometry = gdf['geometry'].apply(lambda geom: geom.wkt)
-            df['geometry'] = geometry
+            gdf = gdf[~gdf["name"].str.contains("not defined")]
+            df = gdf.drop(columns="geometry")
+            geometry = gdf["geometry"].apply(lambda geom: geom.wkt)
+            df["geometry"] = geometry
             self.conn.execute("CREATE TABLE GeoTable AS SELECT * FROM df")
             logging.info("Succefully inserting data to database")
         return self.conn.sql("SELECT * FROM GeoTable;")

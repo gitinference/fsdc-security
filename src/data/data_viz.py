@@ -42,19 +42,7 @@ class DataSecurity(DataClean):
         df = self.data
         df = df[df["year"] == year]
         df = df[["total_insec", "geoid", "geometry"]]
-        quant = df["total_insec"]
-        domain = [
-            quant.min(),
-            quant.quantile(1 / 7),
-            quant.quantile(2 / 7),
-            quant.quantile(3 / 7),
-            quant.quantile(4 / 7),
-            quant.quantile(5 / 7),
-            quant.quantile(6 / 7),
-            quant.max(),
-        ]
 
-        scale = alt.Scale(domain=domain, scheme="viridis")
         chart = (
             alt.Chart(df, title="something")
             .mark_geoshape()
@@ -65,7 +53,10 @@ class DataSecurity(DataClean):
             .encode(
                 alt.Color(
                     "total_insec:Q",
-                    scale=scale,
+                    scale=alt.Scale(
+                        scheme="viridis", type="quantile", nice=True, domain=[0, 1000]
+                    ),
+                    # bin=alt.Bin(maxbins=2),
                     legend=alt.Legend(direction="horizontal", orient="bottom"),
                 )
             )
