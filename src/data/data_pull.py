@@ -2,7 +2,7 @@ from json import JSONDecodeError
 from datetime import datetime
 import geopandas as gpd
 from tqdm import tqdm
-from ..models import get_conn, init_dp03_table
+from ..models import get_conn, init_dp03_table, init_dp05_table
 import polars as pl
 import requests
 import logging
@@ -149,6 +149,73 @@ class DataPull:
                 logging.info(f"data for {_year} is in the database")
                 continue
         return self.conn.sql("SELECT * FROM 'DP03Table';").pl()
+
+    def pull_dp05(self) -> pl.DataFrame:
+        if "DP05Table" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
+            init_dp05_table(self.data_file)
+        for _year in range(2012, datetime.now().year):
+            if (
+                self.conn.sql(f"SELECT * FROM 'DP05Table' WHERE year={_year}")
+                .df()
+                .empty
+            ):
+                try:
+                    logging.info(f"pulling {_year} data")
+                    tmp = self.pull_query(
+                        params=[
+                            "DP05_0001E",
+                            "DP05_0004E",
+                            "DP05_0005E",
+                            "DP05_0006E",
+                            "DP05_0007E",
+                            "DP05_0008E",
+                            "DP05_0009E",
+                            "DP05_0010E",
+                            "DP05_0011E",
+                            "DP05_0012E",
+                            "DP05_0013E",
+                            "DP05_0014E",
+                            "DP05_0015E",
+                            "DP05_0016E",
+                            "DP05_0017E",
+                        ],
+                        year=_year,
+                    )
+                    tmp = tmp.rename(
+                        {
+                            "dp05_0001e": "total_pop",
+                            "dp05_0004e": "ratio",
+                            "dp05_0005e": "under_5_years",
+                            "dp05_0006e": "pop_5_9_years",
+                            "dp05_0007e": "pop_10_14_years",
+                            "dp05_0008e": "pop_15_19_years",
+                            "dp05_0009e": "pop_20_24_years",
+                            "dp05_0010e": "pop_25_34_years",
+                            "dp05_0011e": "pop_35_44_years",
+                            "dp05_0012e": "pop_45_54_years",
+                            "dp05_0013e": "pop_55_59_years",
+                            "dp05_0014e": "pop_60_64_years",
+                            "dp05_0015e": "pop_65_74_years",
+                            "dp05_0016e": "pop_75_84_years",
+                            "dp05_0017e": "over_85_years",
+                        }
+                    )
+
+                    tmp = tmp.with_columns(
+                        geoid=pl.col("state")
+                        + pl.col("county")
+                        + pl.col("county subdivision")
+                    ).drop(["state", "county", "county subdivision"])
+                    # tmp = tmp.with_columns(pl.all().exclude("geoid").cast(pl.Int64))
+                    self.conn.sql("INSERT INTO 'DP05Table' BY NAME SELECT * FROM tmp")
+                    logging.info(f"succesfully inserting {_year}")
+                except JSONDecodeError:
+                    logging.warning(f"The ACS for {_year} is not availabe")
+                    continue
+            else:
+                logging.info(f"data for {_year} is in the database")
+                continue
+        return self.conn.sql("SELECT * FROM 'DP05Table';").pl()
 
     def pull_geo(self) -> ibis.expr.types.relations.Table:
         if not os.path.exists(f"{self.saving_dir}external/cousub.zip"):

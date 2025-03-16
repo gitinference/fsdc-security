@@ -1,18 +1,16 @@
 import duckdb
 
+
 def get_conn(db_path: str) -> duckdb.DuckDBPyConnection:
     return duckdb.connect(db_path)
+
 
 def init_dp03_table(db_path: str) -> None:
     conn = get_conn(db_path=db_path)
 
-        # Create sequence for primary keys
-    conn.sql("DROP SEQUENCE IF EXISTS dp03_sequence;")
-    conn.sql("CREATE SEQUENCE dp03_sequence START 1;")
     conn.sql(
         """
         CREATE TABLE IF NOT EXISTS "DP03Table" (
-            id INTEGER PRIMARY KEY DEFAULT nextval('dp03_sequence'),
             year INTEGER,
             geoid VARCHAR(30),
             total_house INTEGER,
@@ -29,6 +27,35 @@ def init_dp03_table(db_path: str) -> None:
             );
         """
     )
+
+
+def init_dp05_table(db_path: str) -> None:
+    conn = get_conn(db_path=db_path)
+
+    conn.sql(
+        """
+        CREATE TABLE IF NOT EXISTS "DP05Table" (
+            year INTEGER,
+            geoid VARCHAR(30),
+            total_pop INTEGER,
+            ratio FLOAT,
+            under_5_year INTEGER,
+            pop_5_9_years INTEGER,
+            pop_10_14_years INTEGER,
+            pop_15_19_years INTEGER,
+            pop_20_24_years INTEGER,
+            pop_25_34_years INTEGER,
+            pop_35_44_years INTEGER,
+            pop_45_54_years INTEGER,
+            pop_55_59_years INTEGER,
+            pop_60_64_years INTEGER,
+            pop_65_74_years INTEGER,
+            pop_75_84_years INTEGER,
+            over_85_years INTEGER
+            );
+        """
+    )
+
 
 def init_geo_table(db_path: str) -> None:
     conn = get_conn(db_path=db_path)

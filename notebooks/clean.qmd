@@ -16,81 +16,16 @@ import geopandas as gpd
 from shapely import wkt
 import polars as pl
 import altair as alt
-from src.data.data_viz import DataSecurity
-alt.data_transformers.enable("vegafusion")
-ds = DataSecurity()
+from src.data.data_process import DataClean
+ds = DataClean()
 ```
 
 ```{python}
-ds.gen_graph(year=2022, var="insecurity_hous",type='linear', title="asdfsdf")
-```
-
-```{python}
-d.calc_security()
-```
-
-```{python}
-d.gen_graph(2022)
-```
-
-
-```{python}
-# main_gdf = d.pull_geo()
-df = d.pull_dp03()
-df = df.with_columns(
-    inc_less_15k=pl.col("inc_less_10k") + pl.col("inc_10k_15k"),
-    inc_more_35k=pl.col("inc_35k_50k") + pl.col("inc_50k_75k") + pl.col("inc_75k_100k") + pl.col("inc_100k_150k") + pl.col("inc_150k_200k") + pl.col("inc_more_200k")
-)
-df = df.select(["id","year","geoid","total_house","inc_less_15k","inc_15k_25k","inc_25k_35k","inc_more_35k"])
-df = df.with_columns(
-  p_inc_less_15k=pl.col("inc_less_15k") / pl.col("total_house"),
-  p_inc_15_25k=pl.col("inc_15k_25k") / pl.col("total_house"),
-  p_inc_25k_35k=pl.col("inc_25k_35k") / pl.col("total_house"),
-  p_inc_more_35k=pl.col("inc_more_35k") / pl.col("total_house")
-)
-df = df.with_columns(
-    insec_less_15k=pl.col("inc_less_15k") * 57/100,
-    insec_15k_25k=pl.col("inc_15k_25k") * 29/100,
-    insec_25k_35k=pl.col("inc_25k_35k") * 66/1000,
-    insec_more_35k=pl.col("inc_more_35k") * 75/1000
-)
-df = df.with_columns(
-  total_insec=pl.col("insec_less_15k") + pl.col("insec_15k_25k") + pl.col("insec_25k_35k") + pl.col("insec_more_35k")
-)
-
-df = df.with_columns(
-  insecurity_hous=pl.col("total_insec")/pl.col("total_house")
-)
-
-df2 = df.filter(pl.col("year")==2021)
-df2
-```
-
-```{python}
-df = d.pull_geo().df()
-gdf = gpd.GeoDataFrame(df)
-gdf['geometry'] = gdf['geometry'].apply(wkt.loads)
-gdf = gdf.set_geometry("geometry")
-gdf["geoid"] = gdf["geoid"].astype(str)
-master = gdf.join(df2.to_pandas().set_index("geoid"), on="geoid", how="inner", validate="1:1")
+df = ds.pull_dp05()
+df.with_columns("")
 ```
 
 ```{python}
 
-master
-```
 
-
-```{python}
-alt.Chart(master).mark_geoshape().encode(
-    color=alt.Color("total_insec:Q").scale(scheme='magma')
-).transform_lookup(
-    lookup='geoid',
-    from_=alt.LookupData(master, 'geoid', ['total_insec'])
-).project(
-    type='mercator'
-).properties(
-    width="container",
-    height=300
-)
 ```
