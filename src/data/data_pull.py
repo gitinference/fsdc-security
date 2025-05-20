@@ -153,7 +153,7 @@ class DataPull:
     def pull_dp05(self) -> pl.DataFrame:
         if "DP05Table" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
             init_dp05_table(self.data_file)
-        for _year in range(2012, datetime.now().year):
+        for _year in range(2012, datetime.now().year - 1):
             if (
                 self.conn.sql(f"SELECT * FROM 'DP05Table' WHERE year={_year}")
                 .df()
@@ -222,6 +222,7 @@ class DataPull:
             self.pull_file(
                 url="https://www2.census.gov/geo/tiger/TIGER2024/COUSUB/tl_2024_72_cousub.zip",
                 filename=f"{self.saving_dir}external/cousub.zip",
+                verify=False,
             )
         if "GeoTable" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
             logging.info(
