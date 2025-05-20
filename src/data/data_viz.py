@@ -1,7 +1,5 @@
 from .data_process import DataClean
-import logging
 import altair as alt
-alt.Scale(type='quantile')
 
 
 class DataSecurity(DataClean):
@@ -12,33 +10,24 @@ class DataSecurity(DataClean):
         log_file: str = "data_process.log",
     ):
         super().__init__(saving_dir, database_file, log_file)
+        self.data = self.calc_security()
 
-    def gen_graph(self, var, year, type, title, domain=None, nice=False):
-        # define data
-        if var not in ["total_insec", "insecurity_hous"]:
-            logging.error(f"Invalid variable {var}")
-            raise ValueError(f"{var} is not in the available variables")
-        df = self.calc_security()
+    def gen_graph_house(self, year):
+        df = self.data
         df = df[df["year"] == year]
-        df = df[[var, "geoid", "geometry"]]
+        df = df[["geoid", "insecurity_hous", "geometry"]]
 
-        # define choropleth scale
-        if "threshold" in type:
-            scale = alt.Scale(type=type, domain=domain, scheme="inferno")
-        else:
-            scale = alt.Scale(type=type, nice=nice, scheme="inferno")
-
-        # define choropleth chart
         choropleth = (
-            alt.Chart(df, title=title)
+            alt.Chart(df, title="something")
             .mark_geoshape()
             .transform_lookup(
-                lookup="geoid", from_=alt.LookupData(data=df, key="geoid", fields=[var])
+                lookup="geoid",
+                from_=alt.LookupData(data=df, key="geoid", fields=["insecurity_hous"]),
             )
             .encode(
                 alt.Color(
-                    f"{var}:Q",
-                    scale=scale,
+                    "insecurity_hous:Q",
+                    scale=alt.Scale(type="linear", scheme="viridis"),
                     legend=alt.Legend(
                         direction="horizontal", orient="bottom", format=".1%"
                     ),
@@ -48,3 +37,30 @@ class DataSecurity(DataClean):
             .properties(width="container", height=300)
         )
         return choropleth
+
+    def gen_graph_total(self, year):
+        df = self.data
+        df = df[df["year"] == year]
+        df = df[["total_insec", "geoid", "geometry"]]
+
+        chart = (
+            alt.Chart(df, title="something")
+            .mark_geoshape()
+            .transform_lookup(
+                lookup="geoid",
+                from_=alt.LookupData(data=df, key="geoid", fields=["total_insec"]),
+            )
+            .encode(
+                alt.Color(
+                    "total_insec:Q",
+                    scale=alt.Scale(
+                        scheme="viridis", type="quantile", nice=True, domain=[0, 1000]
+                    ),
+                    # bin=alt.Bin(maxbins=2),
+                    legend=alt.Legend(direction="horizontal", orient="bottom"),
+                )
+            )
+            .project(type="mercator")
+            .properties(width="container", height=300)
+        )
+        return chart

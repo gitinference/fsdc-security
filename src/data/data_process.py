@@ -27,7 +27,6 @@ class DataClean(DataPull):
 
         df = df.select(
             [
-                "id",
                 "year",
                 "geoid",
                 "total_house",

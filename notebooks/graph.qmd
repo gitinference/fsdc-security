@@ -16,16 +16,16 @@ import geopandas as gpd
 from shapely import wkt
 import polars as pl
 import altair as alt
-from src.data.data_process import DataClean
-ds = DataClean()
+from src.data.data_viz import DataSecurity
+alt.data_transformers.enable("vegafusion")
+# alt.renderers.enable("jupyter")
+ds = DataSecurity()
 ```
 
 ```{python}
-df = ds.pull_dp05()
-df.with_columns("")
+ds.gen_graph_total(year=2021)
 ```
 
 ```{python}
-
-
+ds.gen_graph_house(year=2021)
 ```
