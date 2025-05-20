@@ -18,6 +18,7 @@ dependencies = [
   "ibis-framework[geospatial,duckdb]>=9.5.0",
   "polars>=1.19.0",
   "requests>=2.32.3",
+  "ridge-map>=0.0.6",
   "sqlalchemy>=2.0.37",
   "tqdm>=4.67.1",
   "vegafusion[embed]>=2.0.2",

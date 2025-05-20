@@ -18,6 +18,7 @@ import polars as pl
 import altair as alt
 from src.data.data_viz import DataSecurity
 alt.data_transformers.enable("vegafusion")
+# alt.renderers.enable("jupyter")
 ds = DataSecurity()
 ```
 
