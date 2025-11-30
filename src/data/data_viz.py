@@ -18,7 +18,7 @@ class DataSecurity(DataClean):
         df = df[["geoid", "insecurity_hous", "geometry"]]
 
         choropleth = (
-            alt.Chart(df, title="something")
+            alt.Chart(df, title="Total Houses with Food Insecurity")
             .mark_geoshape()
             .transform_lookup(
                 lookup="geoid",
@@ -44,7 +44,7 @@ class DataSecurity(DataClean):
         df = df[["total_insec", "geoid", "geometry"]]
 
         chart = (
-            alt.Chart(df, title="something")
+            alt.Chart(df, title="Amount of People with Food Insecurity")
             .mark_geoshape()
             .transform_lookup(
                 lookup="geoid",
