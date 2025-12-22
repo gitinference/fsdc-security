@@ -1,10 +1,11 @@
-from .data_pull import DataPull
 import polars as pl
+from .utils import SecurityUtils
+
 import geopandas as gpd
 from shapely import wkt
 
 
-class FSDCSecurity(DataPull):
+class SecurityData(SecurityUtils):
     def __init__(
         self,
         saving_dir: str = "data/",

@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from fsdc-security!")
+from .fsdc_security import SecurityData

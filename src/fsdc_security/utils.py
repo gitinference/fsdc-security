@@ -1,12 +1,15 @@
 from json import JSONDecodeError
 from datetime import datetime
+from CensusForge import CensusAPI
+import duckdb
+from pathlib import Path
 import geopandas as gpd
 import polars as pl
 import logging
 import os
 
 
-class DataPull:
+class SecurityUtils:
     def __init__(
         self,
         saving_dir: str = "data/",
@@ -15,6 +18,7 @@ class DataPull:
     ):
         self.saving_dir = saving_dir
         self.data_file = database_file
+        self.conn = duckdb.connect()
 
         logging.basicConfig(
             level=logging.INFO,
@@ -31,16 +35,13 @@ class DataPull:
             os.makedirs(self.saving_dir + "external")
 
     def pull_dp03(self) -> pl.DataFrame:
-        for _year in range(2012, datetime.now().year):
-            if (
-                self.conn.sql(f"SELECT * FROM 'DP03Table' WHERE year={_year}")
-                .df()
-                .empty
-            ):
+        for _year in range(2012, datetime.now().year - 1):
+            path_file = Path(f"{self.saving_dir}processed/pr-dp03-{_year}.parquet")
+            if not path_file.exists():
                 try:
                     logging.info(f"pulling {_year} data")
-                    tmp = self.pull_query(
-                        params=[
+                    df_dp03 = CensusAPI().query(
+                        params_list=[
                             "DP03_0051E",
                             "DP03_0052E",
                             "DP03_0053E",
@@ -53,30 +54,34 @@ class DataPull:
                             "DP03_0060E",
                             "DP03_0061E",
                         ],
+                        dataset="acs-acs5-profile",
                         year=_year,
+                        extra="&for=county%20subdivision:*&in=state:72&in=county:*",
                     )
-                    tmp = tmp.rename(
+                    df_dp03 = df_dp03.rename(
                         {
-                            "dp03_0051e": "total_house",
-                            "dp03_0052e": "inc_less_10k",
-                            "dp03_0053e": "inc_10k_15k",
-                            "dp03_0054e": "inc_15k_25k",
-                            "dp03_0055e": "inc_25k_35k",
-                            "dp03_0056e": "inc_35k_50k",
-                            "dp03_0057e": "inc_50k_75k",
-                            "dp03_0058e": "inc_75k_100k",
-                            "dp03_0059e": "inc_100k_150k",
-                            "dp03_0060e": "inc_150k_200k",
-                            "dp03_0061e": "inc_more_200k",
+                            "DP03_0051E": "total_house",
+                            "DP03_0052E": "inc_less_10k",
+                            "DP03_0053E": "inc_10k_15k",
+                            "DP03_0054E": "inc_15k_25k",
+                            "DP03_0055E": "inc_25k_35k",
+                            "DP03_0056E": "inc_35k_50k",
+                            "DP03_0057E": "inc_50k_75k",
+                            "DP03_0058E": "inc_75k_100k",
+                            "DP03_0059E": "inc_100k_150k",
+                            "DP03_0060E": "inc_150k_200k",
+                            "DP03_0061E": "inc_more_200k",
                         }
                     )
-                    tmp = tmp.with_columns(
+                    df_dp03 = df_dp03.with_columns(
                         geoid=pl.col("state")
                         + pl.col("county")
                         + pl.col("county subdivision")
                     ).drop(["state", "county", "county subdivision"])
-                    tmp = tmp.with_columns(pl.all().exclude("geoid").cast(pl.Int64))
-                    self.conn.sql("INSERT INTO 'DP03Table' BY NAME SELECT * FROM tmp")
+                    df_dp03 = df_dp03.with_columns(
+                        pl.all().exclude("geoid").cast(pl.Int64)
+                    )
+                    df_dp03.write_parquet(file=path_file)
                     logging.info(f"succesfully inserting {_year}")
                 except JSONDecodeError:
                     logging.warning(f"The ACS for {_year} is not availabe")
@@ -84,11 +89,11 @@ class DataPull:
             else:
                 logging.info(f"data for {_year} is in the database")
                 continue
-        return self.conn.sql("SELECT * FROM 'DP03Table';").pl()
+        return self.conn.execute(
+            f"SELECT * FROM '{self.saving_dir}processed/pr-dp03-*.parquet';"
+        ).pl()
 
     def pull_dp05(self) -> pl.DataFrame:
-        if "DP05Table" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
-            init_dp05_table(self.data_file)
         for _year in range(2012, datetime.now().year - 1):
             if (
                 self.conn.sql(f"SELECT * FROM 'DP05Table' WHERE year={_year}")
@@ -119,21 +124,21 @@ class DataPull:
                     )
                     tmp = tmp.rename(
                         {
-                            "dp05_0001e": "total_pop",
-                            "dp05_0004e": "ratio",
-                            "dp05_0005e": "under_5_years",
-                            "dp05_0006e": "pop_5_9_years",
-                            "dp05_0007e": "pop_10_14_years",
-                            "dp05_0008e": "pop_15_19_years",
-                            "dp05_0009e": "pop_20_24_years",
-                            "dp05_0010e": "pop_25_34_years",
-                            "dp05_0011e": "pop_35_44_years",
-                            "dp05_0012e": "pop_45_54_years",
-                            "dp05_0013e": "pop_55_59_years",
-                            "dp05_0014e": "pop_60_64_years",
-                            "dp05_0015e": "pop_65_74_years",
-                            "dp05_0016e": "pop_75_84_years",
-                            "dp05_0017e": "over_85_years",
+                            "DP05_0001E": "total_pop",
+                            "DP05_0004E": "ratio",
+                            "DP05_0005E": "under_5_years",
+                            "DP05_0006E": "pop_5_9_years",
+                            "DP05_0007E": "pop_10_14_years",
+                            "DP05_0008E": "pop_15_19_years",
+                            "DP05_0009E": "pop_20_24_years",
+                            "DP05_0010E": "pop_25_34_years",
+                            "DP05_0011E": "pop_35_44_years",
+                            "DP05_0012E": "pop_45_54_years",
+                            "DP05_0013E": "pop_55_59_years",
+                            "DP05_0014E": "pop_60_64_years",
+                            "DP05_0015E": "pop_65_74_years",
+                            "DP05_0016E": "pop_75_84_years",
+                            "DP05_0017E": "over_85_years",
                         }
                     )
 
@@ -153,7 +158,7 @@ class DataPull:
                 continue
         return self.conn.sql("SELECT * FROM 'DP05Table';").pl()
 
-    def pull_geo(self) -> ibis.expr.types.relations.Table:
+    def pull_geo(self):
         if not os.path.exists(f"{self.saving_dir}external/cousub.zip"):
             self.pull_file(
                 url="https://www2.census.gov/geo/tiger/TIGER2024/COUSUB/tl_2024_72_cousub.zip",

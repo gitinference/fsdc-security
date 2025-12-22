@@ -6,7 +6,12 @@ readme = "README.md"
 authors = [{ name = "Alejandro Ouslan", email = "alejandro.ouslan@upr.edu" }]
 requires-python = ">=3.12"
 dependencies = [
+    "censusforge>=0.3.3",
+    "duckdb>=1.4.3",
+    "geopandas>=1.1.1",
     "jp-tools>=0.5.4",
+    "polars>=1.36.1",
+    "shapely>=2.1.2",
 ]
 
 [project.scripts]
@@ -15,3 +20,11 @@ fsdc-security = "fsdc_security:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "jupyter>=1.1.1",
+    "jupytext>=1.18.1",
+    "pre-commit>=4.5.1",
+    "pynvim>=0.6.0",
+]
