@@ -94,16 +94,13 @@ class SecurityUtils:
         ).pl()
 
     def pull_dp05(self) -> pl.DataFrame:
-        for _year in range(2012, datetime.now().year - 1):
-            if (
-                self.conn.sql(f"SELECT * FROM 'DP05Table' WHERE year={_year}")
-                .df()
-                .empty
-            ):
+        for _year in range(2012, datetime.now().year - 2):
+            path_file = Path(f"{self.saving_dir}processed/pr-dp05-{_year}.parquet")
+            if not path_file.exists():
                 try:
                     logging.info(f"pulling {_year} data")
-                    tmp = self.pull_query(
-                        params=[
+                    df_dp05 = CensusAPI().query(
+                        params_list=[
                             "DP05_0001E",
                             "DP05_0004E",
                             "DP05_0005E",
@@ -120,9 +117,11 @@ class SecurityUtils:
                             "DP05_0016E",
                             "DP05_0017E",
                         ],
+                        dataset="acs-acs5-profile",
                         year=_year,
+                        extra="&for=county%20subdivision:*&in=state:72&in=county:*",
                     )
-                    tmp = tmp.rename(
+                    df_dp05 = df_dp05.rename(
                         {
                             "DP05_0001E": "total_pop",
                             "DP05_0004E": "ratio",
@@ -142,14 +141,13 @@ class SecurityUtils:
                         }
                     )
 
-                    tmp = tmp.with_columns(
+                    df_dp05 = df_dp05.with_columns(
                         geoid=pl.col("state")
                         + pl.col("county")
                         + pl.col("county subdivision")
                     ).drop(["state", "county", "county subdivision"])
-                    # tmp = tmp.with_columns(pl.all().exclude("geoid").cast(pl.Int64))
-                    self.conn.sql("INSERT INTO 'DP05Table' BY NAME SELECT * FROM tmp")
                     logging.info(f"succesfully inserting {_year}")
+                    df_dp05.write_parquet(file=path_file)
                 except JSONDecodeError:
                     logging.warning(f"The ACS for {_year} is not availabe")
                     continue
