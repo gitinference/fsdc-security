@@ -1,3 +1,4 @@
+from CensusForge.CensusForge import CensusAPI
 import polars as pl
 from .utils import SecurityUtils
 
@@ -60,10 +61,12 @@ class SecurityData(SecurityUtils):
         df = df.with_columns(
             insecurity_hous=pl.col("total_insec") / pl.col("total_house")
         )
-        gdf = gpd.GeoDataFrame(self.pull_geo().df())
-        gdf["geometry"] = gdf["geometry"].apply(wkt.loads)
-        gdf = gdf.set_geometry("geometry")
-        gdf["geoid"] = gdf["geoid"].astype(str)
+        gdf = CensusAPI().pull_geos(
+            url="https://www2.census.gov/geo/tiger/TIGER2024/COUSUB/tl_2024_72_cousub.zip",
+            filename=f"{self.saving_dir}external/cousub.parquet",
+        )
+        gdf = gdf.rename(columns={"GEOID": "geoid", "NAME": "name"})
+        gdf = gdf[~gdf["name"].str.contains("not defined")]
 
         security_df = gdf.join(
             df.to_pandas().set_index("geoid"), on="geoid", how="inner", validate="1:m"

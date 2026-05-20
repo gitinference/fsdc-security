@@ -4,6 +4,7 @@ from CensusForge import CensusAPI
 import duckdb
 from pathlib import Path
 import geopandas as gpd
+import jp_tools
 import polars as pl
 import logging
 import os
@@ -76,7 +77,8 @@ class SecurityUtils:
                     df_dp03 = df_dp03.with_columns(
                         geoid=pl.col("state")
                         + pl.col("county")
-                        + pl.col("county subdivision")
+                        + pl.col("county subdivision"),
+                        year=_year,
                     ).drop(["state", "county", "county subdivision"])
                     df_dp03 = df_dp03.with_columns(
                         pl.all().exclude("geoid").cast(pl.Int64)
@@ -144,7 +146,8 @@ class SecurityUtils:
                     df_dp05 = df_dp05.with_columns(
                         geoid=pl.col("state")
                         + pl.col("county")
-                        + pl.col("county subdivision")
+                        + pl.col("county subdivision"),
+                        year=_year,
                     ).drop(["state", "county", "county subdivision"])
                     logging.info(f"succesfully inserting {_year}")
                     df_dp05.write_parquet(file=path_file)
@@ -156,9 +159,9 @@ class SecurityUtils:
                 continue
         return self.conn.sql("SELECT * FROM 'DP05Table';").pl()
 
-    def pull_geo(self):
+    def pull_geo2(self):
         if not os.path.exists(f"{self.saving_dir}external/cousub.zip"):
-            self.pull_file(
+            jp_tools.download(
                 url="https://www2.census.gov/geo/tiger/TIGER2024/COUSUB/tl_2024_72_cousub.zip",
                 filename=f"{self.saving_dir}external/cousub.zip",
                 verify=False,
