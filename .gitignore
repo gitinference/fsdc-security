@@ -169,3 +169,5 @@ data/processed/*
 *.wal
 *.ddb
 *.parquet
+notebooks/*
+!notebooks/*.ipynb
