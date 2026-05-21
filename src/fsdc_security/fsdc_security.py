@@ -1,19 +1,22 @@
-from CensusForge.CensusForge import CensusAPI
-import polars as pl
-from .utils import SecurityUtils
+import os
 
 import geopandas as gpd
-from shapely import wkt
+import polars as pl
+from CensusForge import CensusAPI
+from dotenv import load_dotenv
+
+from .utils import SecurityUtils
+
+load_dotenv()
 
 
 class SecurityData(SecurityUtils):
     def __init__(
         self,
         saving_dir: str = "data/",
-        database_file: str = "data.ddb",
         log_file: str = "data_process.log",
     ):
-        super().__init__(saving_dir, database_file, log_file)
+        super().__init__(saving_dir, log_file)
 
     def calc_security(self) -> gpd.GeoDataFrame:
         df = self.pull_dp03()
@@ -61,9 +64,9 @@ class SecurityData(SecurityUtils):
         df = df.with_columns(
             insecurity_hous=pl.col("total_insec") / pl.col("total_house")
         )
-        gdf = CensusAPI().pull_geos(
+        gdf = CensusAPI(str(os.environ.get("CENSUS_TOKEN"))).pull_geos(
             url="https://www2.census.gov/geo/tiger/TIGER2024/COUSUB/tl_2024_72_cousub.zip",
-            filename=f"{self.saving_dir}external/cousub.parquet",
+            filename=f"{self.saving_dir}/external/cousub.parquet",
         )
         gdf = gdf.rename(columns={"GEOID": "geoid", "NAME": "name"})
         gdf = gdf[~gdf["name"].str.contains("not defined")]
