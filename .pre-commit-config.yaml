@@ -1,15 +1,1 @@
-repos:
-  - repo: local
-    hooks:
-      - id: jupyter-nb-clear-output
-        name: jupyter-nb-clear-output
-        files: \.ipynb$
-        stages: [pre-commit]
-        language: system
-        entry: jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace
-  - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.9.17  # uv version
-    hooks:
-      - id: uv-lock
-      - id: pip-compile
-        args: [pyproject.toml, --all-extras, --output-file=requirements.txt]
+/nix/store/qjq7p754q4jbj0mg80pwx6mjan15bw1j-pre-commit-config.json
